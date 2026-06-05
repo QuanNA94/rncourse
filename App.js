@@ -1,80 +1,84 @@
-import React, { useState } from "react";
-import { Button, FlatList, StyleSheet, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 
-import GoalItem from "./components/GoalItem";
-import GoalInput from "./components/GoalInput";
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet, ImageBackground, SafeAreaView } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFonts } from "expo-font";
+import AppLoading from "expo-app-loading";
+
+import StartGameScreen from "./screens/StartGameScreen";
+import GameScreen from "./screens/GameScreen";
+import Colors from "./constants/colors";
+import GameOverScreen from "./screens/GameOverScreen";
 
 export default function App() {
-  const [modalIsVisible, setModalIsVisible] = useState(false);
-  const [courseGoals, setCourseGoals] = useState([]);
+  const [userNumber, setUserNumber] = useState();
+  const [gameIsOver, setGameIsOver] = useState(true);
+  const [guessRounds, setGuessRounds] = useState(0);
 
-  function startAddGoalHandler() {
-    setModalIsVisible(true);
+  const [fontsLoaded] = useFonts({
+    "open-sans": require("./assets/fonts/OpenSans-Regular.ttf"),
+    "open-sans-bold": require("./assets/fonts/OpenSans-Bold.ttf"),
+  });
+
+  if (!fontsLoaded) {
+    return <AppLoading />;
   }
 
-  function endAddGoalHandler() {
-    setModalIsVisible(false);
+  function pickedNumberHandler(pickedNumber) {
+    setUserNumber(pickedNumber);
+    setGameIsOver(false);
   }
 
-  function addGoalHandler(enteredGoalText) {
-    setCourseGoals((currentCourseGoals) => [
-      ...currentCourseGoals,
-      { text: enteredGoalText, id: Math.random().toString() },
-    ]);
-    endAddGoalHandler();
+  function gameOverHandler(numberOfRounds) {
+    setGameIsOver(true);
+    setGuessRounds(numberOfRounds);
   }
 
-  function deleteGoalHandler(id) {
-    setCourseGoals((currentCourseGoals) => {
-      return currentCourseGoals.filter((goal) => goal.id !== id);
-    });
+  function startNewGameHandler() {
+    setUserNumber(null);
+    setGuessRounds(0);
   }
+
+  let screen = <StartGameScreen onPickNumber={pickedNumberHandler} />;
+
+  if (userNumber) {
+    screen = (
+      <GameScreen userNumber={userNumber} onGameOver={gameOverHandler} />
+    );
+  }
+
+  if (gameIsOver && userNumber) {
+    screen = (
+      <GameOverScreen
+        userNumber={userNumber}
+        roundsNumber={guessRounds}
+        onStartNewGame={startNewGameHandler}
+      />
+    );
+  }
+
   return (
-    <>
-      <StatusBar style="light" />
-      <View style={styles.appContainer}>
-        <Button
-          title="Add New Goal"
-          color="#a065ec"
-          onPress={startAddGoalHandler}
-        />
-        <GoalInput
-          visible={modalIsVisible}
-          onAddGoal={addGoalHandler}
-          onCancel={endAddGoalHandler}
-        />
-        <View style={styles.goalsContainer}>
-          <FlatList
-            data={courseGoals}
-            renderItem={(itemData) => {
-              return (
-                <GoalItem
-                  text={itemData.item.text}
-                  onDeleteItem={deleteGoalHandler}
-                  id={itemData.item.id}
-                />
-              );
-            }}
-            keyExtractor={(item, index) => {
-              return item.id;
-            }}
-            alwaysBounceVertical={false}
-          />
-        </View>
-      </View>
-    </>
+    <LinearGradient
+      colors={[Colors.primary700, Colors.accent500]}
+      style={styles.rootScreen}
+    >
+      <ImageBackground
+        source={require("./assets/images/background.jpg")}
+        resizeMode="cover"
+        style={styles.rootScreen}
+        imageStyle={styles.backgroundImage}
+      >
+        <SafeAreaView style={styles.rootScreen}>{screen}</SafeAreaView>
+      </ImageBackground>
+    </LinearGradient>
   );
 }
-
 const styles = StyleSheet.create({
-  appContainer: {
+  rootScreen: {
     flex: 1,
-    paddingTop: 50,
-    paddingHorizontal: 16,
   },
-
-  goalsContainer: {
-    flex: 5,
+  backgroundImage: {
+    opacity: 0.15,
   },
 });
